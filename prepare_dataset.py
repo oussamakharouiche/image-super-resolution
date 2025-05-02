@@ -7,6 +7,8 @@ from joblib import Parallel, delayed
 import numpy as np
 from tqdm import tqdm
 
+PATH_PREFIX = os.path.join(os.path.dirname(__file__), "dataset/")
+
 def download_data():
     subprocess.run([
       "wget", 
@@ -18,7 +20,7 @@ def download_data():
       "-q", 
       "DIV2K_train_HR.zip", 
       "-d", 
-      "/content/dataset/"
+      os.path.join(os.path.dirname(__file__), "dataset/")
     ])
 
 def create_high_resolution_samples_from_image(image_path, size, test=False):
@@ -32,22 +34,22 @@ def create_high_resolution_samples_from_image(image_path, size, test=False):
             )
             if not test:
                 new_img.save(
-                  "/content/dataset/origin/"\
+                  PATH_PREFIX+"origin/"\
                   +image_path.split("/")[-1].split(".")[0]+f"_crop_{i}_{j}.png"
                 )
             else:
                 new_img.save(
-                  "/content/dataset/test/"\
+                  PATH_PREFIX+"test/"\
                   +image_path.split("/")[-1].split(".")[0]+f"_crop_{i}_{j}.png"
                 )
 
 
 def create_high_resolution_data(size):
-    os.makedirs("/content/dataset/origin/")
-    os.makedirs("/content/dataset/test/")
+    os.makedirs(PATH_PREFIX+"origin/")
+    os.makedirs(PATH_PREFIX+"test/")
     files_path = [
       entry.path 
-      for entry in os.scandir("/content/dataset/DIV2K_train_HR") 
+      for entry in os.scandir(PATH_PREFIX+"DIV2K_train_HR") 
       if entry.is_file()
     ]
     result = Parallel(n_jobs=4)(
@@ -79,20 +81,20 @@ def resize_image(img_path, sizes, interpolation):
       interpolation  = interpolation
     )
     lr_img.save(
-      '/content/dataset/lr_data/{}'.format(img_path.split("/")[-1])
+      PATH_PREFIX+'lr_data/{}'.format(img_path.split("/")[-1])
     )
     hr_lr_img.save(
-      '/content/dataset/hr_lr_data/{}'.format(img_path.split("/")[-1])
+      PATH_PREFIX+'hr_lr_data/{}'.format(img_path.split("/")[-1])
     )
 
 def prepare_data(sizes, interpolation):
     files_path = [
       entry.path 
-      for entry in os.scandir("/content/dataset/origin") 
+      for entry in os.scandir(PATH_PREFIX+"origin") 
       if entry.is_file()
     ]
-    os.makedirs("/content/dataset/lr_data/")
-    os.makedirs("/content/dataset/hr_lr_data/")
+    os.makedirs(PATH_PREFIX+"lr_data/")
+    os.makedirs(PATH_PREFIX+"hr_lr_data/")
     
     result = Parallel(n_jobs=4)(
       delayed(resize_image)(image_path, sizes, interpolation) 
