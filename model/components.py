@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import math
 
 class CustumSequentiel(nn.Module):
     def __init__(self, *models):
@@ -81,6 +82,58 @@ class ResBlock(nn.Module):
         
         return (self.conv(x) / torch.sqrt(torch.tensor(2.0))) + h
     
+
+
+
+class SelfAttention(nn.Module):
+    def __init__(self, input_channels, n_head=1):
+        super(SelfAttention, self).__init__()
+
+        self.n_head = n_head
+        self.norm = nn.GroupNorm(input_channels//16 if input_channels>=16 else 1, input_channels)
+        self.qkv = nn.Conv2d(input_channels, input_channels*3, 1, bias=False)
+        self.out = nn.Conv2d(input_channels, input_channels, 1)
+
+    def forward(self, x):
+        batch, channel, height, width = x.shape
+
+        head_dim = channel / self.n_head
+
+        norm = self.norm(x)
+
+        qkv = self.qkv(norm).view(batch, self.n_head, head_dim*3, height, width)
+        query, key, value = qkv.chunk(3, dim=2)
+
+        attn =torch.einsum(
+            "bnchw, bncyx -> bnhwyx", query, key
+        ).contiguous() / math.sqrt(channel)
+
+        attn = attn.view(batch, self.n_head, height, width, -1)
+        attn = torch.softmax(attn, -1)
+        attn = attn.view(batch, self.n_head, height, width, height, width)
+
+        out = torch.einsum(
+            "bnhwyx, bncyx -> bnchw", attn, value
+        ).contiguous()
+
+        out = self.out(out.view(batch, channel, height, width))
+        
+        return out + x
+    
+class ResBlockWithAttn(nn.Module):
+    def __init__(self, input_channels, output_channels, noise_emb_dim, use_affine, with_attn):
+        super(ResBlockWithAttn, self).__init__()
+        self.with_attn = with_attn
+        self.res_block = ResBlock(input_channels, output_channels, noise_emb_dim, use_affine) 
+        self.attn = SelfAttention(output_channels, n_head=4)
+
+
+    def forward(self, x, noise_emb):
+        x = self.res_block(x, noise_emb)
+        if self.with_attn:
+            x = self.attn(x)   
+        return x
+    
 class Unet_encoder(nn.Module):
     def __init__(self, input_channels, noise_emb_dim, base_channels = 64, use_affine = False):
         super(Unet_encoder, self).__init__()
@@ -120,18 +173,18 @@ class Unet_encoder(nn.Module):
         return x1, x2, x3, x4
     
 class Bottleneck(nn.Module):
-    def __init__(self, input_channels, noise_emb_dim, use_affine = False):
+    def __init__(self, input_channels, noise_emb_dim, with_attn, use_affine = False):
         super(Bottleneck, self).__init__()
         self.pooling = nn.MaxPool2d(kernel_size=2, stride=2)
         self.layer1 = CustumSequentiel(
-            ResBlock(input_channels, input_channels*2, noise_emb_dim, use_affine),
-            ResBlock(input_channels*2, input_channels*2, noise_emb_dim, use_affine),
-            ResBlock(input_channels*2, input_channels*2, noise_emb_dim, use_affine)
+            ResBlockWithAttn(input_channels, input_channels*2, noise_emb_dim, use_affine, with_attn),
+            ResBlockWithAttn(input_channels*2, input_channels*2, noise_emb_dim, use_affine, with_attn),
+            ResBlockWithAttn(input_channels*2, input_channels*2, noise_emb_dim, use_affine, with_attn)
         )
         self.layer2 = CustumSequentiel(
-            ResBlock(input_channels*2, input_channels*2, noise_emb_dim, use_affine),
-            ResBlock(input_channels*2, input_channels*2, noise_emb_dim, use_affine),
-            ResBlock(input_channels*2, input_channels*2, noise_emb_dim, use_affine)
+            ResBlockWithAttn(input_channels*2, input_channels*2, noise_emb_dim, use_affine, with_attn),
+            ResBlockWithAttn(input_channels*2, input_channels*2, noise_emb_dim, use_affine, with_attn),
+            ResBlockWithAttn(input_channels*2, input_channels*2, noise_emb_dim, use_affine, with_attn)
         )
         self.up4 = nn.ConvTranspose2d(input_channels*2, input_channels, kernel_size=2, stride=2)
 
@@ -195,11 +248,11 @@ class Unet_decoder(nn.Module):
     
 
 class Unet(nn.Module):
-    def __init__(self, noise_emb_dim, input_channels, output_channels, base_channels = 64, use_affine = False):
+    def __init__(self, noise_emb_dim, input_channels, output_channels, with_attn, base_channels = 64, use_affine = False):
         super(Unet, self).__init__()
         self.pos_encoder = PositionalEncoding(noise_emb_dim)
         self.encoder = Unet_encoder(input_channels, noise_emb_dim, base_channels=base_channels, use_affine=use_affine)
-        self.bottleneck = Bottleneck(base_channels*8, noise_emb_dim, use_affine=use_affine)
+        self.bottleneck = Bottleneck(base_channels*8, noise_emb_dim, with_attn, use_affine=use_affine)
         self.decoder = Unet_decoder(noise_emb_dim, output_channels, base_channels=base_channels, use_affine=use_affine)
 
     def forward(self, x, t):

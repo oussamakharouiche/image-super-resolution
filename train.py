@@ -12,6 +12,9 @@ from model.sr3 import Gaussiendiffusion
 from model.components import Unet
 
 
+PATH_PREFIX = os.path.join(os.path.dirname(__file__), "dataset/")
+CHECKPOINTS_PATH = os.path.join(os.path.dirname(__file__), "checkpoint/")
+os.makedirs(CHECKPOINTS_PATH)
 # Main function
 if __name__ == '__main__':
     # Set device
@@ -19,8 +22,8 @@ if __name__ == '__main__':
     print(f"Using device: {device}")
 
     # Paths
-    hr_folder = "/content/dataset/origin"
-    lr_folder = "/content/dataset/hr_lr_data"
+    hr_folder = PATH_PREFIX+"origin"
+    lr_folder = PATH_PREFIX+"hr_lr_data"
 
     # Transform
     transform = transforms.Compose([
@@ -36,7 +39,7 @@ if __name__ == '__main__':
     T = 1000
 
     # Model and optimizer
-    unet = Unet(1000, 6, 3).to(device)
+    unet = Unet(1000, 6, 3, with_attn=False).to(device)
     model = Gaussiendiffusion(unet, T, device)
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
@@ -84,6 +87,6 @@ if __name__ == '__main__':
 
 
         if (epoch + 1) % 5 == 0:
-          model_path = os.path.join("/content/drive/MyDrive/super_resolution_project/checkpoint/", f"model_params.pth")
+          model_path = os.path.join(CHECKPOINTS_PATH, f"model_params_{epoch+1}.pth")
           torch.save(unet.state_dict(), model_path)
           print(f"Model saved")
