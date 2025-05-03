@@ -14,7 +14,7 @@ from model.components import Unet
 
 PATH_PREFIX = os.path.join(os.path.dirname(__file__), "dataset/")
 CHECKPOINTS_PATH = os.path.join(os.path.dirname(__file__), "checkpoint/")
-os.makedirs(CHECKPOINTS_PATH)
+os.makedirs(CHECKPOINTS_PATH, exist_ok=True)
 # Main function
 if __name__ == '__main__':
     # Set device
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     # Dataset and DataLoader
     dataset = PairedImageDataset(hr_folder, lr_folder, transform=transform)
-    dataloader = DataLoader(dataset, batch_size=2, shuffle=True, num_workers=4)
+    dataloader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=4)
 
     # Diffusion parameters
     T = 1000

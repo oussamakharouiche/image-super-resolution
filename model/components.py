@@ -9,7 +9,7 @@ class CustumSequentiel(nn.Module):
 
     def forward(self, x, noise_emb):
         for model in self.models:
-            if isinstance(model, FeatureWiseAffine) or isinstance(model, ResBlock):
+            if isinstance(model, FeatureWiseAffine) or isinstance(model, ResBlock) or isinstance(model, ResBlockWithAttn):
                 x = model(x, noise_emb)
             else:
                 x = model(x)
