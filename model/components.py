@@ -97,7 +97,7 @@ class SelfAttention(nn.Module):
     def forward(self, x):
         batch, channel, height, width = x.shape
 
-        head_dim = channel / self.n_head
+        head_dim = channel // self.n_head
 
         norm = self.norm(x)
 

@@ -37,7 +37,7 @@ if __name__ == '__main__':
     T = 1000
 
     # Model and optimizer
-    unet = Unet(1000, 6, 3, with_attn=False).to(device)
+    unet = Unet(1000, 6, 3, with_attn=True).to(device)
     model = Gaussiendiffusion(unet, T, device)
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
@@ -77,14 +77,12 @@ if __name__ == '__main__':
                 scheduler_warmup.step()
 
             epoch_loss += loss.item()
-            # if batch_idx % 10 == 0:
-            #     print(f"Epoch [{epoch + 1}/{num_epochs}], Batch [{batch_idx}/{len(dataloader)}], Loss: {loss.item():.4f}")
 
         print(f"Epoch [{epoch + 1}/{num_epochs}], Average Loss: {epoch_loss / len(dataloader):.4f}")
 
 
 
         if (epoch + 1) % 50 == 0:
-          model_path = os.path.join(CHECKPOINTS_PATH, f"model_params_{epoch+1}.pth")
+          model_path = os.path.join(CHECKPOINTS_PATH, f"model_with_attn_params_{epoch+1}.pth")
           torch.save(unet.state_dict(), model_path)
           print(f"Model saved")

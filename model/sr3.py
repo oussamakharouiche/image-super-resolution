@@ -1,5 +1,6 @@
 import torch 
 import torch.nn as nn
+import math
 
 
 def linear_beta_schedule(T):
@@ -8,6 +9,12 @@ def linear_beta_schedule(T):
     cumulative_alphas = torch.cumprod(alphas, dim=0)
     return betas, cumulative_alphas
 
+def cosine_beta_schedule(T):
+
+    betas = torch.linspace(1e-4, 0.02, T)
+    alphas = 1 - betas
+    cumulative_alphas = torch.cumprod(alphas, dim=0)
+    return betas, cumulative_alphas
 
 class Gaussiendiffusion(nn.Module):
     def __init__(self, denoise_fn, T, device, loss_type = "l2"):
