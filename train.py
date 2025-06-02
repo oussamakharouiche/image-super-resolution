@@ -32,7 +32,7 @@ if __name__ == '__main__':
     T = 1000
 
     unet = Unet(1000, 6, 3, with_attn=False).to(device)
-    model = Gaussiendiffusion(unet, T, device)
+    model = Gaussiendiffusion(unet, T, device, schedule="linear")
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
