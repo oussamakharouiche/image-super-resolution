@@ -11,8 +11,8 @@ from tqdm import tqdm
 import math
 
 
-CHECKPOINTS_DIR = os.path.join(os.path.dirname(__file__), "checkpoint_new/")
-DATASET_DIR = os.path.join(os.path.dirname(__file__), "dataset_new/")
+CHECKPOINTS_DIR = os.path.join(os.path.dirname(__file__), "checkpoint/")
+DATASET_DIR = os.path.join(os.path.dirname(__file__), "dataset/")
 MODEL_FILENAME = "model_with_attn_params_1000.pth"
 MODEL_PATH = os.path.join(CHECKPOINTS_DIR, MODEL_FILENAME)
 
