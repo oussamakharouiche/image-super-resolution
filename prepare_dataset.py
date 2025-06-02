@@ -4,7 +4,6 @@ from PIL import Image
 import os
 import subprocess
 from joblib import Parallel, delayed
-import numpy as np
 from tqdm import tqdm
 
 PATH_PREFIX = os.path.join(os.path.dirname(__file__), "dataset/")
