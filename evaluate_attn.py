@@ -59,17 +59,13 @@ def run_inference(model, dataloader, device, T=T, output_dir="test_output_attn")
 
             batch_size = lr_imgs.shape[0]
             
-            # Initialize noise for the entire batch
             img_pred = torch.randn((batch_size, 3, 256, 256), device=device)
             
-            # Reverse diffusion process (batched)
             for t in list(reversed(range(T))):
-                # Concatenate along CHANNELS (dim=1)
                 x = torch.cat([lr_imgs, img_pred], dim=1)  # [B, 6, H, W]
                 
-                # Predict noise for the entire batch
+                # Predict noise
                 noise_p = model(x, torch.tensor([t]).repeat(batch_size).to(device))
-                # noise_p = torch.nn.Tanh()(noise_p)
 
                 print_norm("noise", noise_p)
                 
@@ -84,7 +80,6 @@ def run_inference(model, dataloader, device, T=T, output_dir="test_output_attn")
                 img_pred = torch.clamp(img_pred, -1.0, 1.0)
                 print_norm("pred",img_pred)
             
-            # Denormalize, clamp, and save
             img_pred = img_pred * 0.5 + 0.5
             img_pred = torch.clamp(img_pred, 0.0, 1.0)
             
